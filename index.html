@@ -291,6 +291,38 @@
                 ctx.arc(x, y, 4, 0, 2 * Math.PI);
                 ctx.fill();
             }
+
+            // 标红最大值和最小值点
+            highlightMinMax(ctx, padding, width, height, minDist, distRange, maxInt);
+        }
+
+        function highlightMinMax(ctx, padding, width, height, minDist, distRange, maxInt) {
+            const maxVal = parseFloat(document.getElementById('maxValue').value);
+            const minVal = parseFloat(document.getElementById('minValue').value);
+            if (isNaN(maxVal) && isNaN(minVal)) return;
+
+            ctx.fillStyle = '#F44336';
+            ctx.strokeStyle = '#F44336';
+            ctx.lineWidth = 2;
+
+            for (let i = 0; i < distances.length; i++) {
+                const isMax = !isNaN(maxVal) && Math.abs(intensities[i] - maxVal) < 0.01;
+                const isMin = !isNaN(minVal) && Math.abs(intensities[i] - minVal) < 0.01;
+                if (isMax || isMin) {
+                    const x = padding + ((distances[i] - minDist) / distRange) * width;
+                    const y = 500 - padding - (intensities[i] / maxInt) * height;
+                    ctx.beginPath();
+                    ctx.arc(x, y, 6, 0, 2 * Math.PI);
+                    ctx.fill();
+                    ctx.beginPath();
+                    ctx.arc(x, y, 9, 0, 2 * Math.PI);
+                    ctx.stroke();
+                    // 标注文字
+                    ctx.font = 'bold 11px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(isMax ? 'MAX' : 'MIN', x, y - 14);
+                }
+            }
         }
 
         function confirmValues() {
@@ -444,6 +476,9 @@
             ctx.textAlign = 'center';
             ctx.fillText('20%', x20, canvas.height - padding + 35);
             ctx.fillText('80%', x80, canvas.height - padding + 35);
+
+            // 标红最大值和最小值点
+            highlightMinMax(ctx, padding, width, height, minDist, distRange, maxInt);
         }
 
         function clearAll() {
