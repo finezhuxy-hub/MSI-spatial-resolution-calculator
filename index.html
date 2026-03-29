@@ -54,12 +54,21 @@
         </div>
 
         <div class="input-group" style="margin-bottom: 20px;">
+            <label>确认最小响应值</label>
+            <input type="number" id="minValue" placeholder="自动检测的最小值" step="any">
+        </div>
+
+        <div class="input-group" style="margin-bottom: 20px;">
             <label>确认最大响应值</label>
             <input type="number" id="maxValue" placeholder="自动检测的最大值" step="any">
-            <button onclick="confirmMax()" style="margin-top: 10px;">确认最大值并计算</button>
+            <button onclick="confirmValues()" style="margin-top: 10px;">确认并计算</button>
         </div>
 
         <div class="result-section" id="resultSection" style="display: none;">
+            <div class="result-item">
+                <span class="result-label">最小响应值:</span>
+                <span class="result-value" id="resultMin">-</span>
+            </div>
             <div class="result-item">
                 <span class="result-label">最大响应值:</span>
                 <span class="result-value" id="resultMax">-</span>
@@ -119,7 +128,9 @@
             intensities = data.map(d => d[1]);
 
             const maxIntensity = Math.max(...intensities);
+            const minIntensity = Math.min(...intensities);
             document.getElementById('maxValue').value = maxIntensity.toFixed(2);
+            document.getElementById('minValue').value = minIntensity.toFixed(2);
 
             draw();
         }
@@ -208,15 +219,17 @@
             }
         }
 
-        function confirmMax() {
+        function confirmValues() {
             if (!distances || !intensities) {
                 alert('请先绘制图表');
                 return;
             }
 
             const maxInt = parseFloat(document.getElementById('maxValue').value);
-            const val20 = maxInt * 0.2;
-            const val80 = maxInt * 0.8;
+            const minInt = parseFloat(document.getElementById('minValue').value);
+            const range = maxInt - minInt;
+            const val20 = minInt + range * 0.2;
+            const val80 = minInt + range * 0.8;
 
             const dist20 = findIntersection(val20);
             const dist80 = findIntersection(val80);
@@ -229,6 +242,7 @@
             const resolution = Math.abs(dist80 - dist20);
 
             document.getElementById('resultMax').textContent = maxInt.toFixed(2);
+            document.getElementById('resultMin').textContent = minInt.toFixed(2);
             document.getElementById('result20').textContent = val20.toFixed(2);
             document.getElementById('result80').textContent = val80.toFixed(2);
             document.getElementById('resultResolution').textContent = resolution.toFixed(2);
