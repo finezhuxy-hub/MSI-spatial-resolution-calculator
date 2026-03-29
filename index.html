@@ -343,8 +343,18 @@
             const minInt = parseFloat(document.getElementById('minValue').value);
             const peakPosition = document.getElementById('peakPosition').value;
 
-            // 找最大值的索引
-            const maxIdx = intensities.indexOf(Math.max(...intensities));
+            // 找用户输入的最大值的索引
+            let maxIdx = -1;
+            for (let i = 0; i < intensities.length; i++) {
+                if (Math.abs(intensities[i] - maxInt) < 0.01) {
+                    maxIdx = i;
+                    break;
+                }
+            }
+            if (maxIdx === -1) {
+                alert('无法找到最大值点');
+                return;
+            }
 
             // 根据选择的位置找最近的最小值
             let nearestMinIdx = -1;
