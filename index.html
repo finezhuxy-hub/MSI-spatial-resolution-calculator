@@ -147,6 +147,18 @@
             document.getElementById('tooltip').style.display = 'none';
         });
 
+        document.getElementById('canvas').addEventListener('click', function(evt) {
+            if (!distances || !intensities) return;
+            const pos = getMousePos(this, evt);
+            const point = findNearestPoint(pos.x, pos.y);
+            if (point) {
+                const intensity = intensities[point.index].toFixed(2);
+                navigator.clipboard.writeText(intensity).then(() => {
+                    alert('已复制响应强度: ' + intensity);
+                });
+            }
+        });
+
         function parseData() {
             const input = document.getElementById('dataInput').value.trim();
             if (!input) {
