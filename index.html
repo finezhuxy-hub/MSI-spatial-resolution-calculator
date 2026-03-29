@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>质谱成像空间分辨率计算器</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; background: #f5f5f5; padding: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        h1 { margin-bottom: 20px; color: #333; }
+        .input-section { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+        .input-group { display: flex; flex-direction: column; }
+        label { font-weight: bold; margin-bottom: 5px; color: #555; }
+        textarea { padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-family: monospace; resize: vertical; min-height: 150px; }
+        input[type="number"] { padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
+        button { padding: 10px 20px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; }
+        button:hover { background: #45a049; }
+        .button-group { display: flex; gap: 10px; margin-top: 10px; }
+        .canvas-container { margin: 20px 0; border: 1px solid #ddd; border-radius: 4px; padding: 10px; background: #fafafa; }
+        canvas { display: block; margin: 0 auto; }
+        .result-section { margin-top: 20px; padding: 15px; background: #e8f5e9; border-radius: 4px; border-left: 4px solid #4CAF50; }
+        .result-item { margin: 10px 0; font-size: 16px; }
+        .result-label { font-weight: bold; color: #333; }
+        .result-value { color: #2e7d32; font-size: 18px; }
+        .info { color: #666; font-size: 13px; margin-top: 5px; }
+        .error { color: #d32f2f; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>质谱成像空间分辨率计算器</h1>
+
+        <div class="input-section">
+            <div class="input-group">
+                <label>Retention Time (min) 和 响应强度</label>
+                <textarea id="dataInput" placeholder="粘贴两列数据，用制表符或空格分隔&#10;例如:&#10;0.5	100&#10;1.0	250&#10;1.5	500"></textarea>
+                <div class="info">支持制表符或空格分隔的两列数据</div>
+            </div>
+
+            <div class="input-group">
+                <label>扫描速度 (μm/s)</label>
+                <input type="number" id="scanSpeed" placeholder="输入扫描速度" step="0.1" min="0">
+                <div class="button-group">
+                    <button onclick="plotData()">绘制图表</button>
+                    <button onclick="clearAll()">清空</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="canvas-container">
+            <canvas id="canvas" width="800" height="500"></canvas>
+        </div>
+
+        <div class="input-group" style="margin-bottom: 20px;">
+            <label>确认最大响应值</label>
+            <input type="number" id="maxValue" placeholder="自动检测的最大值" step="any">
+            <button onclick="confirmMax()" style="margin-top: 10px;">确认最大值并计算</button>
+        </div>
+
+        <div class="result-section" id="resultSection" style="display: none;">
+            <div class="result-item">
+                <span class="result-label">最大响应值:</span>
+                <span class="result-value" id="resultMax">-</span>
+            </div>
+            <div class="result-item">
+                <span class="result-label">20% 最大值:</span>
+                <span class="result-value" id="result20">-</span>
+            </div>
+            <div class="result-item">
+                <span class="result-label">80% 最大值:</span>
+                <span class="result-value" id="result80">-</span>
+            </div>
+            <div class="result-item">
+                <span class="result-label">空间分辨率 (μm):</span>
+                <span class="result-value" id="resultResolution">-</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let data = null;
+        let distances = null;
+        let intensities = null;
+
+        function parseData() {
+            const input = document.getElementById('dataInput').value.trim();
+            if (!input) {
+                alert('请输入数据');
+                return null;
+            }
+
+            const lines = input.split('\n').filter(l => l.trim());
+            const parsed = lines.map(line => {
+                const parts = line.trim().split(/[\s\t]+/);
+                return [parseFloat(parts[0]), parseFloat(parts[1])];
+            }).filter(p => !isNaN(p[0]) && !isNaN(p[1]));
+
+            if (parsed.length < 2) {
+                alert('至少需要2个数据点');
+                return null;
+            }
+
+            return parsed;
+        }
+
+        function plotData() {
+            data = parseData();
+            if (!data) return;
+
+            const speed = parseFloat(document.getElementById('scanSpeed').value);
+            if (isNaN(speed) || speed <= 0) {
+                alert('请输入有效的扫描速度');
+                return;
+            }
+
+            distances = data.map(d => d[0] * 60 * speed);
+            intensities = data.map(d => d[1]);
+
+            const maxIntensity = Math.max(...intensities);
+            document.getElementById('maxValue').value = maxIntensity.toFixed(2);
+
+            draw();
+        }
+
+        function draw() {
+            const canvas = document.getElementById('canvas');
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const padding = 60;
+            const width = canvas.width - 2 * padding;
+            const height = canvas.height - 2 * padding;
+
+            const minDist = Math.min(...distances);
+            const maxDist = Math.max(...distances);
+            const distRange = maxDist - minDist || 1;
+            const maxInt = Math.max(...intensities);
+
+            // 坐标轴
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(padding, canvas.height - padding);
+            ctx.lineTo(canvas.width - padding, canvas.height - padding);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(padding, padding);
+            ctx.lineTo(padding, canvas.height - padding);
+            ctx.stroke();
+
+            // 标签
+            ctx.fillStyle = '#000';
+            ctx.font = '12px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('距离 (μm)', canvas.width / 2, canvas.height - 10);
+            ctx.save();
+            ctx.translate(15, canvas.height / 2);
+            ctx.rotate(-Math.PI / 2);
+            ctx.fillText('响应强度', 0, 0);
+            ctx.restore();
+
+            // 刻度
+            ctx.font = '11px Arial';
+            for (let i = 0; i <= 5; i++) {
+                const x = padding + (width / 5) * i;
+                const dist = minDist + (distRange / 5) * i;
+                ctx.fillText(dist.toFixed(1), x, canvas.height - padding + 20);
+                ctx.beginPath();
+                ctx.moveTo(x, canvas.height - padding - 5);
+                ctx.lineTo(x, canvas.height - padding + 5);
+                ctx.stroke();
+            }
+
+            for (let i = 0; i <= 5; i++) {
+                const y = canvas.height - padding - (height / 5) * i;
+                const int = (maxInt / 5) * i;
+                ctx.textAlign = 'right';
+                ctx.fillText(int.toFixed(0), padding - 10, y + 4);
+                ctx.beginPath();
+                ctx.moveTo(padding - 5, y);
+                ctx.lineTo(padding + 5, y);
+                ctx.stroke();
+            }
+
+            // 绘制数据点和线
+            ctx.strokeStyle = '#2196F3';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            for (let i = 0; i < distances.length; i++) {
+                const x = padding + ((distances[i] - minDist) / distRange) * width;
+                const y = canvas.height - padding - (intensities[i] / maxInt) * height;
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+
+            // 绘制数据点
+            ctx.fillStyle = '#2196F3';
+            for (let i = 0; i < distances.length; i++) {
+                const x = padding + ((distances[i] - minDist) / distRange) * width;
+                const y = canvas.height - padding - (intensities[i] / maxInt) * height;
+                ctx.beginPath();
+                ctx.arc(x, y, 4, 0, 2 * Math.PI);
+                ctx.fill();
+            }
+        }
+
+        function confirmMax() {
+            if (!distances || !intensities) {
+                alert('请先绘制图表');
+                return;
+            }
+
+            const maxInt = parseFloat(document.getElementById('maxValue').value);
+            const val20 = maxInt * 0.2;
+            const val80 = maxInt * 0.8;
+
+            const dist20 = findIntersection(val20);
+            const dist80 = findIntersection(val80);
+
+            if (dist20 === null || dist80 === null) {
+                alert('无法找到交点，请检查数据');
+                return;
+            }
+
+            const resolution = Math.abs(dist80 - dist20);
+
+            document.getElementById('resultMax').textContent = maxInt.toFixed(2);
+            document.getElementById('result20').textContent = val20.toFixed(2);
+            document.getElementById('result80').textContent = val80.toFixed(2);
+            document.getElementById('resultResolution').textContent = resolution.toFixed(2);
+            document.getElementById('resultSection').style.display = 'block';
+
+            drawWithLines(val20, val80, dist20, dist80);
+        }
+
+        function findIntersection(targetValue) {
+            for (let i = 0; i < intensities.length - 1; i++) {
+                const y1 = intensities[i];
+                const y2 = intensities[i + 1];
+                if ((y1 <= targetValue && y2 >= targetValue) || (y1 >= targetValue && y2 <= targetValue)) {
+                    const t = (targetValue - y1) / (y2 - y1);
+                    return distances[i] + t * (distances[i + 1] - distances[i]);
+                }
+            }
+            return null;
+        }
+
+        function drawWithLines(val20, val80, dist20, dist80) {
+            const canvas = document.getElementById('canvas');
+            const ctx = canvas.getContext('2d');
+            draw();
+
+            const padding = 60;
+            const width = canvas.width - 2 * padding;
+            const height = canvas.height - 2 * padding;
+            const minDist = Math.min(...distances);
+            const maxDist = Math.max(...distances);
+            const distRange = maxDist - minDist || 1;
+            const maxInt = Math.max(...intensities);
+
+            // 绘制20%和80%水平线
+            ctx.strokeStyle = '#FF9800';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([5, 5]);
+
+            const y20 = canvas.height - padding - (val20 / maxInt) * height;
+            ctx.beginPath();
+            ctx.moveTo(padding, y20);
+            ctx.lineTo(canvas.width - padding, y20);
+            ctx.stroke();
+
+            const y80 = canvas.height - padding - (val80 / maxInt) * height;
+            ctx.beginPath();
+            ctx.moveTo(padding, y80);
+            ctx.lineTo(canvas.width - padding, y80);
+            ctx.stroke();
+
+            ctx.setLineDash([]);
+
+            // 绘制交点和竖线
+            ctx.strokeStyle = '#F44336';
+            ctx.lineWidth = 2;
+            const x20 = padding + ((dist20 - minDist) / distRange) * width;
+            const x80 = padding + ((dist80 - minDist) / distRange) * width;
+
+            ctx.beginPath();
+            ctx.moveTo(x20, y20);
+            ctx.lineTo(x20, canvas.height - padding);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(x80, y80);
+            ctx.lineTo(x80, canvas.height - padding);
+            ctx.stroke();
+
+            // 标注
+            ctx.fillStyle = '#F44336';
+            ctx.font = 'bold 12px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('20%', x20, canvas.height - padding + 35);
+            ctx.fillText('80%', x80, canvas.height - padding + 35);
+        }
+
+        function clearAll() {
+            document.getElementById('dataInput').value = '';
+            document.getElementById('scanSpeed').value = '';
+            document.getElementById('maxValue').value = '';
+            document.getElementById('resultSection').style.display = 'none';
+            const canvas = document.getElementById('canvas');
+            canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+            data = null;
+            distances = null;
+            intensities = null;
+        }
+    </script>
+</body>
+</html>
