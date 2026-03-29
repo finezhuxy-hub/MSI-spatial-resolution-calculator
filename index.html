@@ -102,6 +102,8 @@
         let data = null;
         let distances = null;
         let intensities = null;
+        let highlightMaxIdx = -1;
+        let highlightMinIdx = -1;
 
         function getMousePos(canvas, evt) {
             const rect = canvas.getBoundingClientRect();
@@ -292,35 +294,38 @@
                 ctx.fill();
             }
 
-            // 标红最大值和最小值点
-            highlightMinMax(ctx, padding, width, height, minDist, distRange, maxInt);
-        }
+            // 标红用于计算的最大值和最小值点
+            if (highlightMaxIdx >= 0 || highlightMinIdx >= 0) {
+                ctx.fillStyle = '#F44336';
+                ctx.strokeStyle = '#F44336';
+                ctx.lineWidth = 2;
 
-        function highlightMinMax(ctx, padding, width, height, minDist, distRange, maxInt) {
-            const maxVal = parseFloat(document.getElementById('maxValue').value);
-            const minVal = parseFloat(document.getElementById('minValue').value);
-            if (isNaN(maxVal) && isNaN(minVal)) return;
-
-            ctx.fillStyle = '#F44336';
-            ctx.strokeStyle = '#F44336';
-            ctx.lineWidth = 2;
-
-            for (let i = 0; i < distances.length; i++) {
-                const isMax = !isNaN(maxVal) && Math.abs(intensities[i] - maxVal) < 0.01;
-                const isMin = !isNaN(minVal) && Math.abs(intensities[i] - minVal) < 0.01;
-                if (isMax || isMin) {
-                    const x = padding + ((distances[i] - minDist) / distRange) * width;
-                    const y = 500 - padding - (intensities[i] / maxInt) * height;
+                if (highlightMaxIdx >= 0) {
+                    const x = padding + ((distances[highlightMaxIdx] - minDist) / distRange) * width;
+                    const y = 500 - padding - (intensities[highlightMaxIdx] / maxInt) * height;
                     ctx.beginPath();
                     ctx.arc(x, y, 6, 0, 2 * Math.PI);
                     ctx.fill();
                     ctx.beginPath();
                     ctx.arc(x, y, 9, 0, 2 * Math.PI);
                     ctx.stroke();
-                    // 标注文字
                     ctx.font = 'bold 11px Arial';
                     ctx.textAlign = 'center';
-                    ctx.fillText(isMax ? 'MAX' : 'MIN', x, y - 14);
+                    ctx.fillText('MAX', x, y - 14);
+                }
+
+                if (highlightMinIdx >= 0) {
+                    const x = padding + ((distances[highlightMinIdx] - minDist) / distRange) * width;
+                    const y = 500 - padding - (intensities[highlightMinIdx] / maxInt) * height;
+                    ctx.beginPath();
+                    ctx.arc(x, y, 6, 0, 2 * Math.PI);
+                    ctx.fill();
+                    ctx.beginPath();
+                    ctx.arc(x, y, 9, 0, 2 * Math.PI);
+                    ctx.stroke();
+                    ctx.font = 'bold 11px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('MIN', x, y - 14);
                 }
             }
         }
@@ -370,6 +375,9 @@
                 alert('无法找到最小值点');
                 return;
             }
+
+            highlightMaxIdx = maxIdx;
+            highlightMinIdx = nearestMinIdx;
 
             const range = maxInt - minInt;
             const val20 = minInt + range * 0.2;
@@ -485,12 +493,15 @@
             document.getElementById('dataInput').value = '';
             document.getElementById('scanSpeed').value = '';
             document.getElementById('maxValue').value = '';
+            document.getElementById('minValue').value = '';
             document.getElementById('resultSection').style.display = 'none';
             const canvas = document.getElementById('canvas');
             canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
             data = null;
             distances = null;
             intensities = null;
+            highlightMaxIdx = -1;
+            highlightMinIdx = -1;
         }
     </script>
     <footer>
