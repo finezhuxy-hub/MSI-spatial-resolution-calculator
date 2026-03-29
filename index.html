@@ -281,12 +281,37 @@
 
             const maxInt = parseFloat(document.getElementById('maxValue').value);
             const minInt = parseFloat(document.getElementById('minValue').value);
+
+            // 找最大值的索引
+            const maxIdx = intensities.indexOf(Math.max(...intensities));
+
+            // 找离最大值最近的最小值
+            let nearestMinIdx = -1;
+            let minDist = Infinity;
+            for (let i = 0; i < intensities.length; i++) {
+                if (Math.abs(intensities[i] - minInt) < 0.01) {
+                    const dist = Math.abs(i - maxIdx);
+                    if (dist < minDist) {
+                        minDist = dist;
+                        nearestMinIdx = i;
+                    }
+                }
+            }
+
+            if (nearestMinIdx === -1) {
+                alert('无法找到最小值点');
+                return;
+            }
+
             const range = maxInt - minInt;
             const val20 = minInt + range * 0.2;
             const val80 = minInt + range * 0.8;
 
-            const dist20 = findIntersection(val20);
-            const dist80 = findIntersection(val80);
+            const startIdx = Math.min(nearestMinIdx, maxIdx);
+            const endIdx = Math.max(nearestMinIdx, maxIdx);
+
+            const dist20 = findIntersectionInRange(val20, startIdx, endIdx);
+            const dist80 = findIntersectionInRange(val80, startIdx, endIdx);
 
             if (dist20 === null || dist80 === null) {
                 alert('无法找到交点，请检查数据');
@@ -307,6 +332,18 @@
 
         function findIntersection(targetValue) {
             for (let i = 0; i < intensities.length - 1; i++) {
+                const y1 = intensities[i];
+                const y2 = intensities[i + 1];
+                if ((y1 <= targetValue && y2 >= targetValue) || (y1 >= targetValue && y2 <= targetValue)) {
+                    const t = (targetValue - y1) / (y2 - y1);
+                    return distances[i] + t * (distances[i + 1] - distances[i]);
+                }
+            }
+            return null;
+        }
+
+        function findIntersectionInRange(targetValue, startIdx, endIdx) {
+            for (let i = startIdx; i < endIdx; i++) {
                 const y1 = intensities[i];
                 const y2 = intensities[i + 1];
                 if ((y1 <= targetValue && y2 >= targetValue) || (y1 >= targetValue && y2 <= targetValue)) {
