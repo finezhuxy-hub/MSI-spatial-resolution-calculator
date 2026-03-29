@@ -56,6 +56,14 @@
         </div>
 
         <div class="input-group" style="margin-bottom: 20px;">
+            <label>最大值相对位置</label>
+            <select id="peakPosition" style="padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                <option value="right">最大值在最小值右边</option>
+                <option value="left">最大值在最小值左边</option>
+            </select>
+        </div>
+
+        <div class="input-group" style="margin-bottom: 20px;">
             <label>确认最小响应值</label>
             <input type="number" id="minValue" placeholder="自动检测的最小值" step="any">
         </div>
@@ -293,19 +301,35 @@
 
             const maxInt = parseFloat(document.getElementById('maxValue').value);
             const minInt = parseFloat(document.getElementById('minValue').value);
+            const peakPosition = document.getElementById('peakPosition').value;
 
             // 找最大值的索引
             const maxIdx = intensities.indexOf(Math.max(...intensities));
 
-            // 找离最大值最近的最小值
+            // 根据选择的位置找最近的最小值
             let nearestMinIdx = -1;
             let minDist = Infinity;
-            for (let i = 0; i < intensities.length; i++) {
-                if (Math.abs(intensities[i] - minInt) < 0.01) {
-                    const dist = Math.abs(i - maxIdx);
-                    if (dist < minDist) {
-                        minDist = dist;
-                        nearestMinIdx = i;
+
+            if (peakPosition === 'right') {
+                // 最大值在右边，在左边找最小值
+                for (let i = 0; i < maxIdx; i++) {
+                    if (Math.abs(intensities[i] - minInt) < 0.01) {
+                        const dist = maxIdx - i;
+                        if (dist < minDist) {
+                            minDist = dist;
+                            nearestMinIdx = i;
+                        }
+                    }
+                }
+            } else {
+                // 最大值在左边，在右边找最小值
+                for (let i = maxIdx + 1; i < intensities.length; i++) {
+                    if (Math.abs(intensities[i] - minInt) < 0.01) {
+                        const dist = i - maxIdx;
+                        if (dist < minDist) {
+                            minDist = dist;
+                            nearestMinIdx = i;
+                        }
                     }
                 }
             }
