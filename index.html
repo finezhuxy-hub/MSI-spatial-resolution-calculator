@@ -302,7 +302,7 @@
 
                 if (highlightMaxIdx >= 0) {
                     const x = padding + ((distances[highlightMaxIdx] - minDist) / distRange) * width;
-                    const y = 500 - padding - (intensities[highlightMaxIdx] / maxInt) * height;
+                    const y = canvas.height - padding - (intensities[highlightMaxIdx] / maxInt) * height;
                     ctx.beginPath();
                     ctx.arc(x, y, 6, 0, 2 * Math.PI);
                     ctx.fill();
@@ -316,7 +316,7 @@
 
                 if (highlightMinIdx >= 0) {
                     const x = padding + ((distances[highlightMinIdx] - minDist) / distRange) * width;
-                    const y = 500 - padding - (intensities[highlightMinIdx] / maxInt) * height;
+                    const y = canvas.height - padding - (intensities[highlightMinIdx] / maxInt) * height;
                     ctx.beginPath();
                     ctx.arc(x, y, 6, 0, 2 * Math.PI);
                     ctx.fill();
@@ -486,7 +486,39 @@
             ctx.fillText('80%', x80, canvas.height - padding + 35);
 
             // 标红最大值和最小值点
-            highlightMinMax(ctx, padding, width, height, minDist, distRange, maxInt);
+            if (highlightMaxIdx >= 0 || highlightMinIdx >= 0) {
+                ctx.fillStyle = '#F44336';
+                ctx.strokeStyle = '#F44336';
+                ctx.lineWidth = 2;
+
+                if (highlightMaxIdx >= 0) {
+                    const x = padding + ((distances[highlightMaxIdx] - minDist) / distRange) * width;
+                    const y = canvas.height - padding - (intensities[highlightMaxIdx] / maxInt) * height;
+                    ctx.beginPath();
+                    ctx.arc(x, y, 6, 0, 2 * Math.PI);
+                    ctx.fill();
+                    ctx.beginPath();
+                    ctx.arc(x, y, 9, 0, 2 * Math.PI);
+                    ctx.stroke();
+                    ctx.font = 'bold 11px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('MAX', x, y - 14);
+                }
+
+                if (highlightMinIdx >= 0) {
+                    const x = padding + ((distances[highlightMinIdx] - minDist) / distRange) * width;
+                    const y = canvas.height - padding - (intensities[highlightMinIdx] / maxInt) * height;
+                    ctx.beginPath();
+                    ctx.arc(x, y, 6, 0, 2 * Math.PI);
+                    ctx.fill();
+                    ctx.beginPath();
+                    ctx.arc(x, y, 9, 0, 2 * Math.PI);
+                    ctx.stroke();
+                    ctx.font = 'bold 11px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('MIN', x, y - 14);
+                }
+            }
         }
 
         function clearAll() {
