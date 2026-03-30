@@ -1,58 +1,58 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+本文件为 Claude Code 在此仓库中工作时提供指导。
 
-## Project Overview
+## 项目概述
 
-质谱成像空间分辨率计算器 - A web-based calculator for measuring spatial resolution in mass spectrometry imaging (MSI). The tool analyzes response intensity data across a scan line to calculate the distance (in μm) required for signal to rise from 20% to 80% of the peak value.
+质谱成像空间分辨率计算器 - 用于测量质谱成像（MSI）中空间分辨率的网页工具。通过分析扫描线上的响应强度数据，计算信号从峰值的20%上升到80%所需的距离（μm）。
 
-## Architecture
+## 架构
 
-Single-file HTML application (`index.html`) with embedded CSS and JavaScript. No build process or dependencies required.
+单文件HTML应用（`index.html`），包含内嵌CSS和JavaScript。无需构建过程或外部依赖。
 
-**Key Components:**
-- **Data Input**: Accepts two-column data (retention time in min, response intensity)
-- **Canvas Visualization**: Plots response curve with interactive tooltips
-- **Calculation Engine**: Finds min/max values, computes 20%-80% thresholds, calculates spatial resolution
-- **Peak Detection**: Identifies the closest minimum value to the selected maximum based on user-specified peak position (left/right)
+**核心组件：**
+- **数据输入**：接收两列数据（保留时间单位min，响应强度）
+- **画布可视化**：绘制响应曲线，支持交互式提示框
+- **计算引擎**：查找最小/最大值，计算20%-80%阈值，计算空间分辨率
+- **峰值检测**：根据用户指定的峰值位置（左/右），识别离选定最大值最近的最小值
 
-## Core Workflow
+## 工作流程
 
-1. User pastes retention time and intensity data
-2. Enters scan speed (μm/s) to convert time to distance
-3. Clicks "绘制图表" to plot the curve
-4. Selects peak position (maximum left or right of minimum)
-5. Confirms min/max values (editable)
-6. Clicks "确认并计算" to calculate spatial resolution
-7. Result shows distance between 20% and 80% response points
+1. 用户粘贴保留时间和强度数据
+2. 输入扫描速度（μm/s）以将时间转换为距离
+3. 点击"绘制图表"绘制曲线
+4. 选择峰值位置（最大值在最小值左边或右边）
+5. 确认最小值/最大值（可编辑）
+6. 点击"确认并计算"计算空间分辨率
+7. 结果显示20%和80%响应点之间的距离
 
-## Key Variables
+## 关键变量
 
-- `distances`: Array of distances in μm (calculated from retention time × 60 × scan speed)
-- `intensities`: Array of response intensity values
-- `highlightMaxIdx`, `highlightMinIdx`: Indices of the max/min points used for current calculation
-- `peakPosition`: User selection ("right" or "left") determining which side to search for minimum
+- `distances`：距离数组，单位μm（由保留时间 × 60 × 扫描速度计算）
+- `intensities`：响应强度值数组
+- `highlightMaxIdx`、`highlightMinIdx`：当前计算中使用的最大/最小值点的索引
+- `peakPosition`：用户选择（"right"或"left"），决定在哪一侧搜索最小值
 
-## Important Implementation Details
+## 重要实现细节
 
-- **Min/Max Finding**: Uses user-input values to find corresponding indices, not global extrema
-- **Intersection Calculation**: Only searches between the selected min and max indices to avoid multiple peaks
-- **Canvas Coordinates**: Y-axis uses `canvas.height - padding - (value / maxInt) * height` formula
-- **Highlight Updates**: Reset `highlightMaxIdx` and `highlightMinIdx` when plotting new data; update them in `confirmValues()`
-- **Tooltip**: Shows distance (μm) and intensity on hover; click to copy intensity to clipboard
+- **最小/最大值查找**：使用用户输入值查找对应索引，而非全局极值
+- **交点计算**：仅在选定的最小值和最大值之间搜索，避免多个峰值干扰
+- **画布坐标**：Y轴使用公式 `canvas.height - padding - (value / maxInt) * height`
+- **标注更新**：绘制新数据时重置 `highlightMaxIdx` 和 `highlightMinIdx`；在 `confirmValues()` 中更新
+- **提示框**：悬浮显示距离（μm）和强度；点击复制强度到剪贴板
 
-## Deployment
+## 部署
 
-Deployed on Vercel. GitHub repository: `https://github.com/finezhuxy-hub/MSI-spatial-resolution-calculator`
+部署在 Vercel。GitHub 仓库：`https://github.com/finezhuxy-hub/MSI-spatial-resolution-calculator`
 
-Push changes to trigger automatic redeployment:
+推送更改以触发自动重新部署：
 ```bash
 git add index.html && git commit -m "message" && git push
 ```
 
-## Common Modifications
+## 常见修改
 
-- **Add new calculation metrics**: Extend `confirmValues()` and result display section
-- **Change visualization**: Modify `draw()` and `drawWithLines()` functions
-- **Adjust UI layout**: Edit CSS in `<style>` section
-- **Modify tooltip behavior**: Update mouse event listeners in script section
+- **添加新计算指标**：扩展 `confirmValues()` 和结果显示部分
+- **改变可视化**：修改 `draw()` 和 `drawWithLines()` 函数
+- **调整UI布局**：编辑 `<style>` 部分的CSS
+- **修改提示框行为**：更新脚本部分的鼠标事件监听器
